@@ -89,7 +89,7 @@ jobs:
             echo "prd_changed=false" >> $GITHUB_OUTPUT
             echo "⏭️ PRD file unchanged"
           fi
-      
+
       - name: Create PM Backlog issues
         if: steps.check_approval.outputs.approval_found == 'true'
         run: |
@@ -111,7 +111,7 @@ jobs:
           - [ ] PRD tamamlanmış
           - [ ] Tüm US'lerde AC var
           - [ ] CEO onayı alındı" \
-              --label "backlog,pm"
+              --label "pm"
           fi
           
           # Issue 2: Roadmap planning
@@ -130,7 +130,7 @@ jobs:
           ### Acceptance Criteria
           - [ ] Roadmap.md tamamlanmış
           - [ ] 14 gün + post-MVP safhası tanımlanmış" \
-              --label "backlog,pm"
+              --label "pm"
           fi
           
           # Issue 3: User flow
@@ -149,7 +149,7 @@ jobs:
           ### Acceptance Criteria
           - [ ] Flow diagram tamamlanmış
           - [ ] Tüm ekranlar identified" \
-              --label "backlog,pm,design"
+              --label "pm,design"
           fi
           
           # Issue 4: Test plan update
@@ -168,7 +168,7 @@ jobs:
           ### Acceptance Criteria
           - [ ] Test.md 85%+ MVP coverage var
           - [ ] Tüm test cases documented" \
-              --label "backlog,qa"
+              --label "qa"
           fi
           
           echo "✅ PM Backlog issues created/verified"
