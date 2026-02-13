@@ -1,0 +1,207 @@
+name: Agent Company Pipeline
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * *'  # Günde 1 kez, saat 09:00 TRT
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  process-ideas:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Seed daily idea template (free mode)
+        run: |
+          python3 tools/seed_ideas.py
+      
+      - name: Check for CEO approval
+        id: check_approval
+        run: |
+          if grep -q "^APPROVED: IDEA-[0-9]\+" docs/IDEAS.md; then
+            APPROVED_IDEA=$(grep "^APPROVED: IDEA-[0-9]\+" docs/IDEAS.md | head -1)
+            echo "approval_found=true" >> $GITHUB_OUTPUT
+            echo "approved_idea=$APPROVED_IDEA" >> $GITHUB_OUTPUT
+            echo "✅ Approval found: $APPROVED_IDEA"
+          else
+            echo "approval_found=false" >> $GITHUB_OUTPUT
+            echo "❌ CEO approval not found in docs/IDEAS.md"
+            echo "Add 'APPROVED: IDEA-X' to proceed."
+            exit 0
+          fi
+      
+      - name: Extract approved IDEA details
+        if: steps.check_approval.outputs.approval_found == 'true'
+        id: extract_idea
+        run: |
+          IDEA_ID=$(echo "${{ steps.check_approval.outputs.approved_idea }}" | sed 's/APPROVED: //')
+          echo "idea_id=$IDEA_ID" >> $GITHUB_OUTPUT
+          echo "Extracted IDEA: $IDEA_ID"
+          
+          IDEA_BLOCK=$(awk "/$IDEA_ID:/,/^###|^$/" docs/IDEAS.md | head -30)
+          echo "idea_block<<EOF" >> $GITHUB_OUTPUT
+          echo "$IDEA_BLOCK" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Update PRD with approved IDEA
+        if: steps.check_approval.outputs.approval_found == 'true'
+        id: update_prd
+        run: |
+          cp docs/PRD.md docs/PRD.md.backup
+          
+          python3 << 'PYTHON_SCRIPT'
+          import re
+          
+          with open('docs/PRD.md', 'r', encoding='utf-8') as f:
+              content = f.read()
+          
+          idea_block = """${{ steps.extract_idea.outputs.idea_block }}"""
+          
+          pattern = r'## Seçilen Fikir\n\n\[Workflow tarafından doldurulacak - IDEA-X bilgileri\]'
+          replacement = f'## Seçilen Fikir\n\n{idea_block}'
+          
+          new_content = re.sub(pattern, replacement, content)
+          
+          with open('docs/PRD.md', 'w', encoding='utf-8') as f:
+              f.write(new_content)
+          
+          print("✅ PRD updated with approved IDEA")
+          PYTHON_SCRIPT
+          
+          echo "prd_updated=true" >> $GITHUB_OUTPUT
+      
+      - name: Check if PRD changed
+        if: steps.check_approval.outputs.approval_found == 'true'
+        id: check_prd_diff
+        run: |
+          if ! diff -q docs/PRD.md.backup docs/PRD.md > /dev/null 2>&1; then
+            echo "prd_changed=true" >> $GITHUB_OUTPUT
+            echo "📝 PRD file was modified"
+          else
+            echo "prd_changed=false" >> $GITHUB_OUTPUT
+            echo "⏭️ PRD file unchanged"
+          fi
+      
+      - name: Create PM Backlog issues
+        if: steps.check_approval.outputs.approval_found == 'true'
+        run: |
+          # Issue 1: PRD refinement
+          if ! gh issue list --search "PM Backlog: PRD'yi netleştir" --state open | grep -q .; then
+            gh issue create \
+              --title "PM Backlog: PRD'yi netleştir" \
+              --body "## Görev
+          Onaylı IDEA için PRD belgesini kesinleştir.
+          
+          ### Yapılacaklar
+          - [ ] Problem tanımını detaylandır
+          - [ ] User personas'ı somutlaştır
+          - [ ] Solution'u teknik açıdan detaylandır
+          - [ ] User stories + acceptance criteria'ları yaz
+          - [ ] KPI'ları define et
+          
+          ### Acceptance Criteria
+          - [ ] PRD tamamlanmış
+          - [ ] Tüm US'lerde AC var
+          - [ ] CEO onayı alındı" \
+              --label "backlog,pm"
+          fi
+          
+          # Issue 2: Roadmap planning
+          if ! gh issue list --search "PM Backlog: Roadmap'i Sprint bazında kesinleştir" --state open | grep -q .; then
+            gh issue create \
+              --title "PM Backlog: Roadmap'i Sprint bazında kesinleştir" \
+              --body "## Görev
+          14 günlük MVP için sprint planı yap.
+          
+          ### Yapılacaklar
+          - [ ] Sprint 1 (7 gün) tasks tanımla
+          - [ ] Sprint 2 (7 gün) tasks tanımla
+          - [ ] Dependencies haritala
+          - [ ] Team capacity'a göre allocate et
+          
+          ### Acceptance Criteria
+          - [ ] Roadmap.md tamamlanmış
+          - [ ] 14 gün + post-MVP safhası tanımlanmış" \
+              --label "backlog,pm"
+          fi
+          
+          # Issue 3: User flow
+          if ! gh issue list --search "PM Backlog: MVP ekran akışını çıkar" --state open | grep -q .; then
+            gh issue create \
+              --title "PM Backlog: MVP ekran akışını çıkar" \
+              --body "## Görev
+          MVP için user flow ve wireframe hazırla.
+          
+          ### Yapılacaklar
+          - [ ] User journey map'ı çiz
+          - [ ] Kritik ekran flow'unu tanımla
+          - [ ] Wireframe/mockup oluştur (Figma/excalidraw)
+          - [ ] Dev team'le align et
+          
+          ### Acceptance Criteria
+          - [ ] Flow diagram tamamlanmış
+          - [ ] Tüm ekranlar identified" \
+              --label "backlog,pm,design"
+          fi
+          
+          # Issue 4: Test plan update
+          if ! gh issue list --search "PM Backlog: Test Plan taslağını güncelle" --state open | grep -q .; then
+            gh issue create \
+              --title "PM Backlog: Test Plan taslağını güncelle" \
+              --body "## Görev
+          MVP scope'una göre test plan'ı detaylandır.
+          
+          ### Yapılacaklar
+          - [ ] Happy path test cases tanımla
+          - [ ] Edge case'leri düşün
+          - [ ] Error scenarios'ları ekle
+          - [ ] UX test strategy hazırla
+          
+          ### Acceptance Criteria
+          - [ ] Test.md 85%+ MVP coverage var
+          - [ ] Tüm test cases documented" \
+              --label "backlog,qa"
+          fi
+          
+          echo "✅ PM Backlog issues created/verified"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Commit and push PRD update
+        if: steps.check_approval.outputs.approval_found == 'true' && steps.check_prd_diff.outputs.prd_changed == 'true'
+        run: |
+          git config --local user.email "bot@agent-company.dev"
+          git config --local user.name "Agent Company Bot"
+          
+          git add docs/PRD.md
+          git commit -m "🤖 [AUTOMATED] Update PRD with ${{ steps.extract_idea.outputs.idea_id }}"
+          git push
+          
+          echo "✅ PRD changes committed and pushed"
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🔄 Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.check_approval.outputs.approval_found }}" == "true" ]; then
+            echo "✅ **CEO Approval**: ${{ steps.check_approval.outputs.approved_idea }}" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **IDEA Extracted**: ${{ steps.extract_idea.outputs.idea_id }}" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **PRD Updated**: Yes (${{ steps.check_prd_diff.outputs.prd_changed }})" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Issues Created**: PM Backlog (4 items)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status**: CEO approval not found" >> $GITHUB_STEP_SUMMARY
+            echo "➡️ **Action**: Add 'APPROVED: IDEA-X' to docs/IDEAS.md" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
