@@ -1,0 +1,109 @@
+name: 🐛 Bug Report
+description: Bulunan hata/sorun raporlama
+title: "[BUG] "
+labels: ["bug"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Teşekkürler bug rapor ettiğin için! 🙏
+        Lütfen detaylı bilgi ver ki sorunu çabuk çözüm bulabilelim.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity (Ciddilik)
+      description: Bu bug'ın önem derecesi nedir?
+      options:
+        - "🔴 Blocker: Sistem tamamen çalışmıyor, kullanılamaz"
+        - "🟠 High: Kritik feature çalışmıyor, işin yapılması imkansız"
+        - "🟡 Medium: Bazı şeyler yanlış, ama workaround var"
+        - "🟢 Low: Minor issue, hassas değil"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Açıklaması
+      description: Bug'ı kısaca açıkla
+      placeholder: "X yaparken Y olması gerekirken Z oluyor..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Adım Adım Tekrarlama
+      description: Hatayu nasıl tekrarlayabiliriz?
+      placeholder: |
+        1. Şu sayfaya git...
+        2. Şu butona tıkla...
+        3. Şu alanı doldur...
+        4. Hata oluşuyor...
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Beklenen Sonuç
+      description: Ne olması gerekirdi?
+      placeholder: "Sayfa şu şekilde yüklenmeliydi..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Gerçek Sonuç
+      description: Aslında ne oldu?
+      placeholder: "Sayfa error gösteriyor..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Ortam Bilgileri
+      description: |
+        - Browser: [e.g., Chrome 120]
+        - OS: [e.g., Windows 11, macOS]
+        - Device: [Mobile, Desktop]
+        - Version: [App version, URL, etc.]
+      placeholder: |
+        - Browser: 
+        - OS: 
+        - Device: 
+        - Version: 
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshot/Video
+      description: Eğer varsa, hata gösterimi için resim ya da video ekle
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Log (Varsa)
+      description: Browser console veya server log'u
+      render: shell
+
+  - type: checkbox
+    id: confirm
+    attributes:
+      label: Bilgi Onayı
+      options:
+        - label: Aynı bug'ı zaten raporlandığını kontrol ettim
+          required: true
+        - label: Sorun takip edilebilir şekilde açıklandı
+          required: true

@@ -1,0 +1,103 @@
+name: ✨ Feature Request
+description: Yeni feature/capability öner
+title: "[FEATURE] "
+labels: ["enhancement"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Harika bir fikir görmek heyecanlı! 🚀
+        Lütfen detaylı bilgi ver ki en iyi şekilde uygulanabilsin.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Şu anda hangi sorun var? Ne eksik?
+      placeholder: "Şimdiki sistem [X problemi] çünkü [Y neden]..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Önerilen Çözüm
+      description: Bunu nasıl çözmek istersin?
+      placeholder: "Şu feature'ı eklesek [A] elde ederiz..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatif Çözümler
+      description: Başka yaklaşımlar var mı?
+      placeholder: "Alternatif 1: ...\nAlternatif 2: ..."
+
+  - type: textarea
+    id: user_stories
+    attributes:
+      label: User Stories + Acceptance Criteria
+      description: |
+        Her user story için AC'ler belirt
+      placeholder: |
+        ### Story 1
+        **Olarak** [user type]
+        **İstiyorum** [feature]
+        **Çünkü** [benefit]
+        
+        **Acceptance Criteria:**
+        - [ ] AC1: ...
+        - [ ] AC2: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: mockup
+    attributes:
+      label: Screen Design / Mockup (varsa)
+      description: Figma link, sketch, wireframe, vs.
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - "🔴 Blocker: MVP için must-have"
+        - "🟠 High: Yakında yapılmalı"
+        - "🟡 Medium: Gelecek sprint'lerde"
+        - "🟢 Low: Backlog'a ekle"
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Expected Impact
+      description: |
+        - User'a ne kazandırır?
+        - KPI'larında ne değişir?
+        - Revenue impact?
+      placeholder: |
+        - User benefit: ...
+        - KPI impact: ...
+        - Revenue: ...
+
+  - type: textarea
+    id: estimate
+    attributes:
+      label: Rough Estimation
+      description: Kaç günde yapılır sanırız?
+      placeholder: "Frontend: X gün, Backend: Y gün, Total: Z gün"
+
+  - type: checkbox
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: Benzer feature'ı zaten raporlanmamış kontrol ettim
+          required: true
+        - label: User stories tanımlı ve net
+          required: true
