@@ -1,0 +1,121 @@
+name: Auto-Label Issues
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Get issue data
+        id: issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title;
+            const body = issue.body || '';
+            
+            core.setOutput('title', title);
+            core.setOutput('body', body);
+      
+      - name: Add PM label if "PM Backlog:" in title
+        if: contains(steps.issue.outputs.title, 'PM Backlog:')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['pm']
+            });
+            console.log('✅ Added pm label');
+      
+      - name: Add bug label if "BUG" in title
+        if: contains(steps.issue.outputs.title, '[BUG]')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['bug']
+            });
+            console.log('✅ Added bug label');
+      
+      - name: Check severity and add priority label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `${{ steps.issue.outputs.body }}`;
+            const title = `${{ steps.issue.outputs.title }}`;
+            
+            let priorityLabel = null;
+            
+            // bug_report.yml format'ından severity alanını çek
+            // "severity: ### 🔴 Blocker: ..." veya "severity: Blocker"
+            const severityMatch = body.match(/severity[:\s]+([^\n]+)/i);
+            
+            if (severityMatch) {
+              const severity = severityMatch[1].toLowerCase();
+              
+              if (severity.includes('blocker') || severity.includes('critical')) {
+                priorityLabel = 'blocker';
+              } else if (severity.includes('high')) {
+                priorityLabel = 'high';
+              } else if (severity.includes('medium')) {
+                priorityLabel = 'medium';
+              } else if (severity.includes('low')) {
+                priorityLabel = 'low';
+              }
+            }
+            
+            // Title'da priority yoksa, body'de arayalım
+            if (!priorityLabel && title.includes('[BUG]')) {
+              // Default bug'ların priority'sini medium koy
+              priorityLabel = 'medium';
+            }
+            
+            if (priorityLabel) {
+              github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: [priorityLabel]
+              });
+              console.log(`✅ Added ${priorityLabel} label`);
+            }
+      
+      - name: Add enhancement label if "FEATURE" in title
+        if: contains(steps.issue.outputs.title, '[FEATURE]')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['enhancement']
+            });
+            console.log('✅ Added enhancement label');
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🏷️ Auto-Label Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Issue**: ${{ github.event.issue.title }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Applied Labels:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Contains 'PM Backlog:': pm" >> $GITHUB_STEP_SUMMARY
+          echo "- Contains '[BUG]': bug + priority" >> $GITHUB_STEP_SUMMARY
+          echo "- Contains '[FEATURE]': enhancement" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View Issue](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/issues/${{ github.event.issue.number }})" >> $GITHUB_STEP_SUMMARY
